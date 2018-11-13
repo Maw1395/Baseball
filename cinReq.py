@@ -1,6 +1,14 @@
 from requests import get
 from bs4 import BeautifulSoup, Comment
-
+import sqlalchemy as db
+#GLOBAL TABLE SETUP
+engine = db.create_engine('sqlite:///project.db')
+connection = engine.connect()
+metadata = db.MetaData()
+PlateAppearance = db.Table('PlateAppearance', metadata, autoload=True, autoload_with=engine)
+sqlite_file = 'project.db'
+table_name = 'PlateAppearance'
+#GLOBAL NAME DICT
 teamdict = {
 				"ATL": "AtlantaBraves",
 				"NYM": "NewYorkMets",
@@ -24,14 +32,15 @@ teamdict = {
 				"OAK": "OaklandAthletics",
 				"PHI": "PhiladelphiaPhillies",
 				"PIT": "PittsburghPirates",
-				"SD" : "SanDiegoPadres",
-				"SF" : "SanFranciscoGiants",
+				"SDP" : "SanDiegoPadres",
+				"SFG" : "SanFranciscoGiants",
 				"SEA": "SeattleMariners",
 				"STL": "StLouisCardinals",
-				"TB" : "TampaBayRays",
+				"TBR" : "TampaBayRays",
 				"TEX": "TexasRangers",
 				"TOR": "TorontoBlueJays",
-				"WAS": "WashingtonNationals"
+				"WAS": "WashingtonNationals",
+				"MIA": "MiamiMarlins",
 			}
 def Teams():
 	TeamsUrls=[]
@@ -46,8 +55,11 @@ def Teams():
 				TeamsUrls.append(Team.find("a").get('href'))
 			except:
 				continue
-		#print TeamsUrls
-	return TeamsUrls
+			#TODO REMOVE BREAK
+			return TeamsUrls
+		print TeamsUrls
+	
+	
 
 def Games():
 	teams=Teams()
@@ -63,7 +75,8 @@ def Games():
 
 			for game in Gamesj:
 				TotalGames.append(game.find("a").get('href'))
-	return TotalGames
+			#TODO REMOVE BREAK	
+			return TotalGames
 	#break
 
 
@@ -74,39 +87,47 @@ def batter_info(batter, team_key, cont):
 			batter = batter.replace(x, "")
 		if ord(x) == 10:
 			batter = batter.replace(x, " ")
-	team = teamdict[team_key]
+	try:
+		team = teamdict[team_key]
+	except:
+		print team_key
+		return batterStats.append(999,999,999)
 	team = team + "batting"
 	soup = BeautifulSoup(cont, "lxml")
-
 	comment = soup.find(string=lambda text:isinstance(text,Comment) and 'id="'+team+'"' in text)
 	soup2 = BeautifulSoup(comment, "lxml")
 	table = soup2.find("table",{"id": team} )
-
+	slg=0.0
+	obp=0.0
+	ops=0.0
+	batterStats=[]
 	for row in table.findAll("tr"):
-		cell = row.findAll("th", {"data-stat": "player"})
+		cell = row.find("th", {"data-stat": "player"})
 		for x in cell:
 			try:
 				current = str(x).split("shtml\">")[1].split("<")[0]
+				#print row
 				if current.replace(" ","") == batter:
-						cells4 = row.findAll("td", {"data-stat": "onbase_perc"})
-						for i in cells4:
-							print str(i).split("\">")[1].split("<")[0]
-
-						cells5 = row.findAll("td", {"data-stat": "slugging_perc"})
-						for i in cells5:
-							print str(i).split("\">")[1].split("<")[0]
-
-						cells6 = row.findAll("td", {"data-stat": "onbase_plus_slugging"})
-						for i in cells6:
-							print str(i).split("\">")[1].split("<")[0]
-
+					try:
+						batterStats.append(float(str(row.find("td", {"data-stat": "onbase_perc"})).split("\">")[1].split("<")[0]))
+						batterStats.append(float(str(row.find("td", {"data-stat": "slugging_perc"})).split("\">")[1].split("<")[0]))
+						batterStats.append(float(str(row.find("td", {"data-stat": "onbase_plus_slugging"})).split("\">")[1].split("<")[0]))
+						return batterStats
+					except:
+						slg=999
+						obp=999
+						ops=999
+						return batterStats.append(999,999,999)
 			except:
-				pass
-
+				continue			
 def Pitcher_info():
 	GamesList = Games()
+	GameNumber=0
+	print GamesList
 	for Game in GamesList:
-		cont = get("https://www.baseball-reference.com/"+Game+".shtml").content
+		cont = get("https://www.baseball-reference.com/boxes/SFN/SFN201804282.shtml").content
+		#cont = get("https://www.baseball-reference.com"+Game).content
+		YEAR = int(Game.split('/')[3][3:7])
 		soup = BeautifulSoup(cont, "lxml")
 		comment = soup.find(text=lambda n: isinstance(n, Comment) and 'id="play_by_play"' in n)
 		soup2 = BeautifulSoup(comment, "lxml")
@@ -127,61 +148,113 @@ def Pitcher_info():
 		p2s = 0            #pitcher 2 strikes
 		p2b = 0            #balls
 		pst = 0            #total
+		hold1 = ''
+		hold2 = ''
+		BatterNumberHome=0
+		BatterNumberAway=0
+		TopofInning=False
+		rep1=False
+		rep2=False
 
 
 		for row in table.findAll("tr"):
+			try:
+				inning = str(row.find("th", {"data-stat": "inning"})).split("\">")[1].split("<")[0]
+			except:
+				continue
+			print inning
 
-			cells1 = row.findAll("td", {"data-stat": "pitcher"})
-			for z in cells1:
-				hold = str(z).split("pitcher\">")[1].split("<")[0]
+			if (not inning or inning=="Inn" or (inning[0]!='t' and inning[0]!='b')):
+				continue
+			
+			currPitcher = str(row.find("td", {"data-stat": "pitcher"})).split("pitcher\">")[1].split("<")[0]
 
-				if st1f == 0:
-					starting1 = hold
+			if inning[0]=='b' or inning[0]=='B':
+				TopofInning=False
+				BatterNumberHome+=1
+				if(currPitcher!=starting2 and st2f!=0):
+					rep2=True
+			else:
+				TopofInning=True
+				BatterNumberAway+=1
+				if (currPitcher!=starting1 and st1f!=0):
+					rep1=True
+			#print row.findAll("td", {"data-stat": "pitcher"})
+			if st1f == 0:
+					starting1 = currPitcher
 					st1f = 1
-				if starting1 != hold and st2f == 0:
-					starting2 = hold
-					st2f = 1
-				if starting1 == hold or starting2 == hold:
-					print hold
-				else:
-					exit()
+			if st2f == 0 and not TopofInning:
+				starting2 = currPitcher
+				st2f = 1
 
-			cells2 = row.findAll("td", {"data-stat": "outs"})
+			if (rep1 and rep2):
+				break
 
-			for z in cells2:
-				out = str(z).split("outs\">")[1].split("<")[0]
-				if out == "":
-					break
-				else:
-					print "out:" + out
+			if starting1 != currPitcher and starting2 != currPitcher:
+				continue
 
-			cells3 = row.findAll("th", {"data-stat": "inning"})
+			out = str(row.find("td", {"data-stat": "outs"})).split("outs\">")[1].split("<")[0]
+			print "out:" + out
+			pitches = str(row.findAll("td", {"data-stat": "pitches_pbp"})).split("p\">")[1].split("<spa")[0]
+			playDesc = str(row.find("td", {"data-stat": "play_desc"})).split("desc\">")[1].split("<")[0]
+			currentbt=str(row.find("td", {"data-stat": "batting_team_id"})).split("\">")[1].split("<")[0]
+			currentb = str(row.find("td", {"data-stat": "batter"})).split("\">")[1].split("<")[0]
+			pitchCount=0
+			strkes=0
+			balls=0
+			try:
+				pitchCount=int(pitches.split(",")[1])
+				strikes = int(pitches.split("(")[1].split('-')[0])
+				balls = int(pitches.split("(")[1].split('-')[1].split(')')[0])
+			except:
+				#REMEMBER IF 999 DO NOT COUNT
+				pitchCount=999
+				strikes=999
+				balls=999
+			batterstats = batter_info(currentb, currentbt, cont)
+			print YEAR
+			print GameNumber
+			print BatterNumberHome
+			print currPitcher
+			print strikes
+			print balls
+			print pitchCount
+			print out
+			print inning[1]
+			print batterstats[0]
+			print batterstats[1]
+			print batterstats[2]
+			
+			#TODO UPDATE TABLE
+			#elif(currPitcher==starting2)
+			#TODO UPDATE TABLE
+			'''
+			
+			connection.execute(PlateAppearance.insert().values(Team= currentbt,
+			Year = YEAR,
+			Game_Number = GameNumber,
+			Batter_Number = BatterNumberHome or BatterNumberAway
+			Pitcher= currPitcher,
+			Strike = strikes,
+			Ball= balls,
+			Pitches = pitchCount,
+			Outs = out,
+			Inning = inning[1],
+			Slugging = batterstats[0],
+			Obp = batterstats[1],
+			Ops = batterstate[2],
+			Outcome=playDesc))
+			'''
+			print "Pitches", pitches
+			
+		GameNumber+=1
+		exit(1)
+			
+				#exit(1)
+def main():
+	
 
-			for z in cells3:
-				inning = str(z).split("\">")[1].split("<")[0]
-				if inning == "":
-					break
-				else:
-					print "inning:" + inning
 
-			cells4 = row.findAll("td", {"data-stat": "pitches_pbp"})
-			for i in cells4:
-				print str(i).split("p\">")[1].split("<spa")[0]
-
-
-			cells5 = row.findAll("td", {"data-stat": "play_desc"})
-			for i in cells5:
-				print str(i).split("desc\">")[1].split("<")[0]
-
-			cells6 = row.findAll("td", {"data-stat": "batting_team_id"})
-			for i in cells6:
-				currentbt = str(i).split("\">")[1].split("<")[0]
-				print currentbt
-
-			cells7 = row.findAll("td", {"data-stat": "batter"})
-			for i in cells7:
-				currentb = str(i).split("\">")[1].split("<")[0]
-				batter_info(currentb, currentbt, cont)
-
+	Pitcher_info()
 if __name__ == "__main__":
 	main()
