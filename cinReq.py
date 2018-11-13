@@ -49,7 +49,7 @@ def Teams():
 		soup = BeautifulSoup(cont, "lxml")
 		TeamTable=soup.find("table",{"class": "sortable stats_table", "id": "teams_standard_batting"} )
 		Teams = TeamTable.findAll("th", {"class": "left"})
-		
+
 		for Team in Teams:
 			try:
 				TeamsUrls.append(Team.find("a").get('href'))
@@ -58,8 +58,8 @@ def Teams():
 			#TODO REMOVE BREAK
 			return TeamsUrls
 		print TeamsUrls
-	
-	
+
+
 
 def Games():
 	teams=Teams()
@@ -68,14 +68,14 @@ def Games():
 		cont = get("https://www.baseball-reference.com/" + i). content
 		soup = BeautifulSoup(cont, "lxml")
 		Games = soup.findAll("ul", {"class": "timeline"})
-		
+
 		for j in Games:
 			Gamesj = j.findAll("li", {"class" : "result"})
 		#print Games
 
 			for game in Gamesj:
 				TotalGames.append(game.find("a").get('href'))
-			#TODO REMOVE BREAK	
+			#TODO REMOVE BREAK
 			return TotalGames
 	#break
 
@@ -119,7 +119,7 @@ def batter_info(batter, team_key, cont):
 						ops=999
 						return batterStats.append(999,999,999)
 			except:
-				continue			
+				continue
 def Pitcher_info():
 	GamesList = Games()
 	GameNumber=0
@@ -166,7 +166,7 @@ def Pitcher_info():
 
 			if (not inning or inning=="Inn" or (inning[0]!='t' and inning[0]!='b')):
 				continue
-			
+
 			currPitcher = str(row.find("td", {"data-stat": "pitcher"})).split("pitcher\">")[1].split("<")[0]
 
 			if inning[0]=='b' or inning[0]=='B':
@@ -203,9 +203,10 @@ def Pitcher_info():
 			strkes=0
 			balls=0
 			try:
-				pitchCount=int(pitches.split(",")[1])
-				strikes = int(pitches.split("(")[1].split('-')[0])
-				balls = int(pitches.split("(")[1].split('-')[1].split(')')[0])
+				print "pitches" + pitches
+				pitchCount = int(pitches.split(",")[0].strip())
+				strikes = int(pitches.split("(")[1].split('-')[0].strip())
+				balls = int(pitches.split("(")[1].split('-')[1].split(')')[0].strip())
 			except:
 				#REMEMBER IF 999 DO NOT COUNT
 				pitchCount=999
@@ -224,12 +225,12 @@ def Pitcher_info():
 			print batterstats[0]
 			print batterstats[1]
 			print batterstats[2]
-			
+
 			#TODO UPDATE TABLE
 			#elif(currPitcher==starting2)
 			#TODO UPDATE TABLE
 			'''
-			
+
 			connection.execute(PlateAppearance.insert().values(Team= currentbt,
 			Year = YEAR,
 			Game_Number = GameNumber,
@@ -246,13 +247,13 @@ def Pitcher_info():
 			Outcome=playDesc))
 			'''
 			print "Pitches", pitches
-			
+
 		GameNumber+=1
 		exit(1)
-			
+
 				#exit(1)
 def main():
-	
+
 
 
 	Pitcher_info()
