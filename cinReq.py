@@ -26,7 +26,7 @@ teamdict = {
 				"HOU": "HoustonAstros",
 				"KAN": "KansasCityRoyals",
 				"LAD": "LosAngelesDodgers",
-				"LAA": "LosAngelesAngels",
+				"LAA":"LosAngelesAngelsofAnaheim",
 				"MIL": "MilwaukeeBrewers",
 				"MIN": "MinnesotaTwins",
 				"OAK": "OaklandAthletics",
@@ -41,10 +41,19 @@ teamdict = {
 				"TOR": "TorontoBlueJays",
 				"WAS": "WashingtonNationals",
 				"MIA": "MiamiMarlins",
+				"MON":"MontrealExpos",
+				"CAL":"CaliforniaAngels",
+				"ANA":"AnaheimAngels",
+				"KCR":"KansasCityRoyals",
+				"TBD":"TampaBayDevilRays"
+				"WSN": "WashingtonNationals"
+
+
 			}
 def Teams():
 	TeamsUrls=[]
-	for year in range(1980, 2018):
+	for year in range(2000,2010):
+		#TODO CHANGE THIS BACK TO 2015
 		cont = get("https://www.baseball-reference.com/leagues/MLB/" + str(year) + ".shtml").content
 		soup = BeautifulSoup(cont, "lxml")
 		TeamTable=soup.find("table",{"class": "sortable stats_table", "id": "teams_standard_batting"} )
@@ -55,9 +64,9 @@ def Teams():
 				TeamsUrls.append(Team.find("a").get('href'))
 			except:
 				continue
-			#TODO REMOVE BREAK
-			return TeamsUrls
-		print TeamsUrls
+			
+			#return TeamsUrls
+	return TeamsUrls
 
 
 
@@ -76,12 +85,14 @@ def Games():
 			for game in Gamesj:
 				TotalGames.append(game.find("a").get('href'))
 			#TODO REMOVE BREAK
-			return TotalGames
+			#return TotalGames
 	#break
+	return list(set(TotalGames))
 
 
 
-def batter_info(batter, team_key, cont):
+def batter_info(batter, team_key, soup):
+	batterStats=[]
 	for x in batter:
 		if ord(x) > 126:
 			batter = batter.replace(x, "")
@@ -90,17 +101,21 @@ def batter_info(batter, team_key, cont):
 	try:
 		team = teamdict[team_key]
 	except:
+		#print team_key
 		print team_key
 		return batterStats.append(999,999,999)
 	team = team + "batting"
-	soup = BeautifulSoup(cont, "lxml")
-	comment = soup.find(string=lambda text:isinstance(text,Comment) and 'id="'+team+'"' in text)
-	soup2 = BeautifulSoup(comment, "lxml")
+	#soup = BeautifulSoup(cont, "lxml")
+	try:
+		comment = soup.find(string=lambda text:isinstance(text,Comment) and 'id="'+team+'"' in text)
+		soup2 = BeautifulSoup(comment, "lxml")
+	except:
+		return [999,999,999]
 	table = soup2.find("table",{"id": team} )
 	slg=0.0
 	obp=0.0
 	ops=0.0
-	batterStats=[]
+	
 	for row in table.findAll("tr"):
 		cell = row.find("th", {"data-stat": "player"})
 		for x in cell:
@@ -112,26 +127,31 @@ def batter_info(batter, team_key, cont):
 						batterStats.append(float(str(row.find("td", {"data-stat": "onbase_perc"})).split("\">")[1].split("<")[0]))
 						batterStats.append(float(str(row.find("td", {"data-stat": "slugging_perc"})).split("\">")[1].split("<")[0]))
 						batterStats.append(float(str(row.find("td", {"data-stat": "onbase_plus_slugging"})).split("\">")[1].split("<")[0]))
+						if None in batterStats:
+							return[999,999,999]
 						return batterStats
 					except:
-						slg=999
-						obp=999
-						ops=999
-						return batterStats.append(999,999,999)
+						return [999,999,999]
 			except:
 				continue
 def Pitcher_info():
 	GamesList = Games()
 	GameNumber=0
-	print GamesList
+
+	#TODO CHANGE THIS BACK TO ZERO
+	#print GamesList
 	for Game in GamesList:
-		cont = get("https://www.baseball-reference.com/boxes/SFN/SFN201804282.shtml").content
-		#cont = get("https://www.baseball-reference.com"+Game).content
+		#cont = get("https://www.baseball-reference.com/boxes/SFN/SFN201804282.shtml").content
+		cont = get("https://www.baseball-reference.com"+Game).content
 		YEAR = int(Game.split('/')[3][3:7])
-		soup = BeautifulSoup(cont, "lxml")
-		comment = soup.find(text=lambda n: isinstance(n, Comment) and 'id="play_by_play"' in n)
-		soup2 = BeautifulSoup(comment, "lxml")
-		table = soup2.find("table",{"id": "play_by_play"} )
+		try:
+			soup = BeautifulSoup(cont, "lxml")
+			comment = soup.find(text=lambda n: isinstance(n, Comment) and 'id="play_by_play"' in n)
+			soup2 = BeautifulSoup(comment, "lxml")
+			table = soup2.find("table",{"id": "play_by_play"} )
+		except: 
+			GameNumber+=1
+			continue
 
 		starting1 = ""     #starting pitcher 1
 		starting2 = ""     #starting pitcher 2
@@ -152,6 +172,8 @@ def Pitcher_info():
 		hold2 = ''
 		BatterNumberHome=0
 		BatterNumberAway=0
+		BNH=False
+		BNA=False
 		TopofInning=False
 		rep1=False
 		rep2=False
@@ -162,7 +184,7 @@ def Pitcher_info():
 				inning = str(row.find("th", {"data-stat": "inning"})).split("\">")[1].split("<")[0]
 			except:
 				continue
-			print inning
+			#print inning
 
 			if (not inning or inning=="Inn" or (inning[0]!='t' and inning[0]!='b')):
 				continue
@@ -172,11 +194,13 @@ def Pitcher_info():
 			if inning[0]=='b' or inning[0]=='B':
 				TopofInning=False
 				BatterNumberHome+=1
+				BNH=True;BNA=False
 				if(currPitcher!=starting2 and st2f!=0):
 					rep2=True
 			else:
 				TopofInning=True
 				BatterNumberAway+=1
+				BNH=False;BNA=True
 				if (currPitcher!=starting1 and st1f!=0):
 					rep1=True
 			#print row.findAll("td", {"data-stat": "pitcher"})
@@ -194,16 +218,24 @@ def Pitcher_info():
 				continue
 
 			out = str(row.find("td", {"data-stat": "outs"})).split("outs\">")[1].split("<")[0]
-			print "out:" + out
-			pitches = str(row.findAll("td", {"data-stat": "pitches_pbp"})).split("p\">")[1].split("<spa")[0]
-			playDesc = str(row.find("td", {"data-stat": "play_desc"})).split("desc\">")[1].split("<")[0]
+			#print "out:" + out
+			pitches = str(row.find("td", {"data-stat": "pitches_pbp"})).split("p\">")[1].split("<spa")[0]
+			playDesc = str(row.find("td", {"data-stat": "play_desc"})).split("desc\">")[1].split("<")[0].replace("\xc2\xa0", " ")
 			currentbt=str(row.find("td", {"data-stat": "batting_team_id"})).split("\">")[1].split("<")[0]
 			currentb = str(row.find("td", {"data-stat": "batter"})).split("\">")[1].split("<")[0]
+			runsScored = int(str(row.find("td", {"data-stat": "score_batting_team"})).split(">")[1].split("-")[0])
+			#print "nothing"
+			bases = str(row.find("td", {"data-stat": "runners_on_bases_pbp"})).split(">")[1].split("<")[0]
+			#exit(1)
+			#<td class="left " data-stat="score_batting_team">0-0</td>
+
+			#print runsScored
+			#exit(1)
 			pitchCount=0
 			strkes=0
 			balls=0
 			try:
-				print "pitches" + pitches
+				#print "pitches" + pitches
 				pitchCount = int(pitches.split(",")[0].strip())
 				strikes = int(pitches.split("(")[1].split('-')[0].strip())
 				balls = int(pitches.split("(")[1].split('-')[1].split(')')[0].strip())
@@ -212,8 +244,8 @@ def Pitcher_info():
 				pitchCount=999
 				strikes=999
 				balls=999
-			batterstats = batter_info(currentb, currentbt, cont)
-			print YEAR
+			batterstats = batter_info(currentb, currentbt, soup)
+			'''print YEAR
 			print GameNumber
 			print BatterNumberHome
 			print currPitcher
@@ -225,31 +257,45 @@ def Pitcher_info():
 			print batterstats[0]
 			print batterstats[1]
 			print batterstats[2]
-
-			#TODO UPDATE TABLE
-			#elif(currPitcher==starting2)
-			#TODO UPDATE TABLE
 			'''
 
-			connection.execute(PlateAppearance.insert().values(Team= currentbt,
-			Year = YEAR,
-			Game_Number = GameNumber,
-			Batter_Number = BatterNumberHome or BatterNumberAway
-			Pitcher= currPitcher,
-			Strike = strikes,
-			Ball= balls,
-			Pitches = pitchCount,
-			Outs = out,
-			Inning = inning[1],
-			Slugging = batterstats[0],
-			Obp = batterstats[1],
-			Ops = batterstate[2],
-			Outcome=playDesc))
-			'''
-			print "Pitches", pitches
+			if (BNH):
 
+				connection.execute(PlateAppearance.insert().values(Team= currentbt,
+				Year = YEAR,
+				Game_Number = GameNumber,
+				Batter_Number = BatterNumberHome,
+				Pitcher= currPitcher.replace("\xc2\xa0", " "),
+				Strike = strikes,
+				Ball= balls,
+				Pitches = pitchCount,
+				Outs = out,
+				Inning = inning[1],
+				Slugging = batterstats[0],
+				Obp = batterstats[1],
+				Ops = batterstats[2],
+				Runs=runsScored,
+				Bases=bases,
+				Outcome=playDesc))
+			else:
+				connection.execute(PlateAppearance.insert().values(Team= currentbt,
+				Year = YEAR,
+				Game_Number = GameNumber,
+				Batter_Number =BatterNumberAway,
+				Pitcher= currPitcher.replace("\xc2\xa0", " "),
+				Strike = strikes,
+				Ball= balls,
+				Pitches = pitchCount,
+				Outs = out,
+				Inning = inning[1],
+				Slugging = batterstats[0],
+				Obp = batterstats[1],
+				Ops = batterstats[2],
+				Runs=runsScored,
+				Bases=bases,
+				Outcome=playDesc))
+		print GameNumber		
 		GameNumber+=1
-		exit(1)
 
 				#exit(1)
 def main():
