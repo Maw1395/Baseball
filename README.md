@@ -34,6 +34,33 @@ Y88b  d88P Y88b. Y88..88P 888 d88P          888     888  888 Y8b.          888  
          pullpullpullpullpullp                             pullpullpullpullpullp                                pullpullpullpullpullp             
               ullpullpull                                       ullpullpull                                          ullpullpull            
 </pre>
+## Presentation
+https://docs.google.com/presentation/d/1vdqHqTb5AUSWi5Ek7UCdrCc93TBn-Wp8mJbkBxIi5ic/edit?usp=sharing
+## Write Up
+https://docs.google.com/document/d/1w9GFq4JPdmkcESjYCHtKNLRJnwWUN52HAxqAszUYrtI/edit?usp=sharing
+## Update Database
+python my_repository/manage.py script "Update Script"
+python my_repository/manage.py upgrade
+
+## Initalize Database 
+python cinReq.py
+
+## Database Conversion
+```
+python covert.py //converts database to csv in the form of out1.csv
+python c_db.py // creates outappend.csv which is out1 wihtout junk data
+			   // creates Data1.csv which is the testing database 
+python label.py// creates Labels1.csv which is the label maker
+```
+
+## Testing and Implementation Phase
+```
+python create_model.py // creates a guess label set WoodyG.csv
+					   // creates a test label set WoodyT.csv
+					   // creates an output file for these labels, Info.csv
+python Graphs.py // graphical output
+```
+
 ### 1,229,337 Plate Appearances
 ### 48,582 Starts 
 ### 24,291 Games
