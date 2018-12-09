@@ -39,25 +39,27 @@ https://docs.google.com/presentation/d/1vdqHqTb5AUSWi5Ek7UCdrCc93TBn-Wp8mJbkBxIi
 ## Write Up
 https://docs.google.com/document/d/1w9GFq4JPdmkcESjYCHtKNLRJnwWUN52HAxqAszUYrtI/edit?usp=sharing
 ## Update Database
+```
 python my_repository/manage.py script "Update Script"
 python my_repository/manage.py upgrade
-
+```
 ## Initalize Database 
+```
 python cinReq.py
-
+```
 ## Database Conversion
 ```
 python covert.py //converts database to csv in the form of out1.csv
 python c_db.py // creates outappend.csv which is out1 wihtout junk data
-			   // creates Data1.csv which is the testing database 
+	       // creates Data1.csv which is the testing database 
 python label.py// creates Labels1.csv which is the label maker
 ```
 
 ## Testing and Implementation Phase
 ```
 python create_model.py // creates a guess label set WoodyG.csv
-					   // creates a test label set WoodyT.csv
-					   // creates an output file for these labels, Info.csv
+		      // creates a test label set WoodyT.csv
+		      // creates an output file for these labels, Info.csv
 python Graphs.py // graphical output
 ```
 
