@@ -37,7 +37,7 @@ Y88b  d88P Y88b. Y88..88P 888 d88P          888     888  888 Y8b.          888  
 ## Presentation
 https://docs.google.com/presentation/d/1vdqHqTb5AUSWi5Ek7UCdrCc93TBn-Wp8mJbkBxIi5ic/edit?usp=sharing
 ## Write Up
-https://docs.google.com/document/d/1w9GFq4JPdmkcESjYCHtKNLRJnwWUN52HAxqAszUYrtI/edit?usp=sharing
+http://ww2.cs.fsu.edu/~woodham/Baseball
 ## Update Database
 ```
 python my_repository/manage.py script "Update Script"
